@@ -5,19 +5,31 @@ dataFileName = '../data/v0_2_midnight_copy.csv'
 
 
 
+class Drawer():
+    save_path = './pathes_check/'
 
-def drawEpisodePath(path):
-    x = []
-    y = []
-    for p in path:
-        x.append(-p[2])
-        y.append(p[1]) #rotate 90 degree
-    plt.scatter(x, y)
-    plt.axhline(0, color='black')
-    plt.axvline(0, color='black')
-    axes = plt.gca()
-    axes.set_xlim([-1.0, 1.0])
-    plt.show()
+    def drawEpisodePath(episode, sec, path):
+        plt.clf()
+        x = []
+        y = []
+        vec_data = []
+        for p in path:
+            x.append(-p[2])
+            y.append(p[1]) #rotate 90 degree
+
+            th = p[4] + m.pi/2
+            mag = p[0]*0.1
+            vec_data.append((-p[2], -p[2] + mag*m.cos(th), p[1], p[1] + mag*m.sin(th)))
+
+        plt.scatter(x, y)
+        plt.axhline(0, color='black')
+        plt.axvline(0, color='black')
+        plt.title(episode)
+        for vec in vec_data:
+            plt.plot((vec[0], vec[1]), (vec[2], vec[3]), 'b')
+        axes = plt.gca()
+        axes.set_xlim([-1.0, 1.0])
+        plt.savefig(Drawer.save_path + str(episode) + '_' + str(sec) + '.png')
 
 if __name__=='__main__':
     f = open(dataFileName, 'r')
@@ -26,17 +38,20 @@ if __name__=='__main__':
     episode_ls = []
     prev_episode = ''
     CSV_FIELD_NAMES = ['sec','stamp','cur_vel','cur_tire_angle','cmd_vel','cmd_w','cur_x','cur_y','cur_z','x_cur_ang_vel','y_cur_ang_vel','z_cur_ang_vel' \
-        ,'x_cur_angle','y_cur_angle','z_cur_angle','x_cur_acc','y_cur_acc','z_cur_acc','path']
+        ,'x_cur_angle','y_cur_angle','z_cur_angle','x_cur_acc','y_cur_acc','z_cur_acc','path','episode']
     cnt = 0
+    episode_num = 0
     for line in rdr:
         #check episode number
         cur_episode = line[0]
         if cur_episode != prev_episode:
+            episode_num += 1
+
             episode_ls.append({})
             for field in CSV_FIELD_NAMES:
                 episode_ls[-1][field] = []
         prev_episode = cur_episode
-
+        episode_ls[-1]['episode'].append(episode_num)
         episode_ls[-1]['sec'].append(int(line[1]))
         episode_ls[-1]['stamp'].append(float(line[2]))
         episode_ls[-1]['cur_vel'].append(float(line[3]))
@@ -62,8 +77,9 @@ if __name__=='__main__':
             episode_ls[-1]['path'][-1].append(d)
 
         cnt += 1
-        if not cnt%20:
-            drawEpisodePath(episode_ls[-1]['path'][-1])
+        #if not cnt%1:
+        if episode_num is 1:
+            Drawer.drawEpisodePath(episode_ls[-1]['episode'][-1], episode_ls[-1]['sec'][-1], episode_ls[-1]['path'][-1])
     print('n episode : {}'.format(len(episode_ls)))
 
     state_size = 3 + 4 + 8
